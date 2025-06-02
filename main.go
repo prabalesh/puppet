@@ -49,6 +49,7 @@ func main() {
 	// server listenting
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/languages", addLanguage)
+	mux.HandleFunc("GET /api/languages", listLanguages)
 
 	// handlers
 
@@ -81,4 +82,33 @@ func addLanguage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
+}
+
+func listLanguages(w http.ResponseWriter, r *http.Request) {
+	rows, err := db.Query("SELECT * FROM languages")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var languages []Language
+	for rows.Next() {
+		var lang Language
+
+		err := rows.Scan(&lang.ID,
+			&lang.Name,
+			&lang.Version,
+			&lang.ImageName,
+			&lang.Installed,
+			&lang.CreatedAt,
+			&lang.UpdatedAt)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		languages = append(languages, lang)
+	}
+	json.NewEncoder(w).Encode(languages)
 }
