@@ -2,19 +2,31 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
+
+type Language struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	Version   string    `json:"version"`
+	ImageName string    `json:"image_name"`
+	Installed bool      `json:"installed"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
 
 var db *sql.DB
 
 func main() {
 	// database connection
 	var err error
-	db, err = sql.Open("sqlite3", "file:storage/languages.db?cache=shared&_foreign_keys=on")
+	db, err = sql.Open("sqlite3", "file:storage/puppet.db?cache=shared&_foreign_keys=on")
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err.Error())
 	}
@@ -36,6 +48,7 @@ func main() {
 
 	// server listenting
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/languages", addLanguage)
 
 	// handlers
 
@@ -44,4 +57,28 @@ func main() {
 		log.Fatalf("failed to start server: %v\n", err.Error())
 		return
 	}
+}
+
+// handler functions
+func addLanguage(w http.ResponseWriter, r *http.Request) {
+	var lang Language
+	if err := json.NewDecoder(r.Body).Decode(&lang); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	currentTime := time.Now()
+	_, err := db.Exec(
+		"INSERT INTO languages (name, version, image_name, installed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+		lang.Name,
+		lang.Version,
+		lang.ImageName,
+		false,
+		currentTime,
+		currentTime)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
