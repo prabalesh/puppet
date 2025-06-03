@@ -54,6 +54,8 @@ func main() {
 	mux.HandleFunc("POST /api/languages", addLanguage)
 	mux.HandleFunc("GET /api/languages", listLanguages)
 	mux.HandleFunc("DELETE /api/languages/{id}", deleteLanguage)
+	mux.HandleFunc("POST /api/languages/{id}/installations", installLanguage)
+	mux.HandleFunc("DELETE /api/languages/{id}/installations", uninstallLanguage)
 
 	// server listenting
 	fmt.Println("Server started at http://localhost:8080/")
@@ -151,4 +153,48 @@ func deleteLanguage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func installLanguage(w http.ResponseWriter, r *http.Request) {
+	doUpdateInstallationStatus(w, r, true)
+}
+
+func uninstallLanguage(w http.ResponseWriter, r *http.Request) {
+	doUpdateInstallationStatus(w, r, false)
+}
+
+func doUpdateInstallationStatus(w http.ResponseWriter, r *http.Request, install bool) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var imageName string
+	err = db.QueryRow("SELECT image_name FROM languages WHERE id = ?", id).Scan(&imageName)
+	if err != nil {
+		http.Error(w, "Language not found", http.StatusNotFound)
+		return
+	}
+
+	var cmd *exec.Cmd
+	if install {
+		cmd = exec.Command("docker", "pull", imageName)
+	} else {
+		cmd = exec.Command("docker", "rmi", imageName)
+	}
+
+	err = cmd.Run()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Docker error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = db.Exec("UPDATE languages SET installed = ?, updated_at = ? WHERE id = ?", install, time.Now(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
