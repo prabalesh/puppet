@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os/exec"
+	"strconv"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -46,13 +48,14 @@ func main() {
 		log.Fatalf("failed to create the languages table%v", err.Error())
 	}
 
-	// server listenting
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/languages", addLanguage)
-	mux.HandleFunc("GET /api/languages", listLanguages)
 
 	// handlers
+	mux.HandleFunc("POST /api/languages", addLanguage)
+	mux.HandleFunc("GET /api/languages", listLanguages)
+	mux.HandleFunc("DELETE /api/languages/{id}", deleteLanguage)
 
+	// server listenting
 	fmt.Println("Server started at http://localhost:8080/")
 	if err = http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatalf("failed to start server: %v\n", err.Error())
@@ -111,4 +114,41 @@ func listLanguages(w http.ResponseWriter, r *http.Request) {
 		languages = append(languages, lang)
 	}
 	json.NewEncoder(w).Encode(languages)
+}
+
+func deleteLanguage(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	var imageName string
+	var installed bool
+	err = db.QueryRow("SELECT image_name, installed FROM languages WHERE id = ?", id).Scan(&imageName, &installed)
+	if err == sql.ErrNoRows {
+		http.Error(w, "language not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if installed {
+		cmd := exec.Command("docker", "rmi", imageName)
+		err := cmd.Run()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("docker uninstall failed: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	_, err = db.Exec("DELETE FROM languages WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
