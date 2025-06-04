@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/prabalesh/puppet/internal/db"
 )
 
 type Language struct {
@@ -23,30 +23,16 @@ type Language struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-var db *sql.DB
+var database *sql.DB
 
 func main() {
 	// database connection
 	var err error
-	db, err = sql.Open("sqlite3", "file:storage/puppet.db?cache=shared&_foreign_keys=on")
+	database, err = db.InitDB("file:storage/puppet.db?cache=shared&_foreign_keys=on")
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err.Error())
 	}
-	defer db.Close()
-
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS languages (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT,
-			version TEXT,
-			image_name TEXT UNIQUE,
-			installed BOOLEAN,
-			created_at DATETIME,
-			updated_at DATETIME
-		)`)
-	if err != nil {
-		log.Fatalf("failed to create the languages table%v", err.Error())
-	}
+	defer database.Close()
 
 	mux := http.NewServeMux()
 
@@ -73,7 +59,7 @@ func addLanguage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentTime := time.Now()
-	_, err := db.Exec(
+	_, err := database.Exec(
 		"INSERT INTO languages (name, version, image_name, installed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
 		lang.Name,
 		lang.Version,
@@ -90,7 +76,7 @@ func addLanguage(w http.ResponseWriter, r *http.Request) {
 }
 
 func listLanguages(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query("SELECT * FROM languages")
+	rows, err := database.Query("SELECT * FROM languages")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -128,7 +114,7 @@ func deleteLanguage(w http.ResponseWriter, r *http.Request) {
 
 	var imageName string
 	var installed bool
-	err = db.QueryRow("SELECT image_name, installed FROM languages WHERE id = ?", id).Scan(&imageName, &installed)
+	err = database.QueryRow("SELECT image_name, installed FROM languages WHERE id = ?", id).Scan(&imageName, &installed)
 	if err == sql.ErrNoRows {
 		http.Error(w, "language not found", http.StatusNotFound)
 		return
@@ -146,7 +132,7 @@ func deleteLanguage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = db.Exec("DELETE FROM languages WHERE id = ?", id)
+	_, err = database.Exec("DELETE FROM languages WHERE id = ?", id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -172,7 +158,7 @@ func doUpdateInstallationStatus(w http.ResponseWriter, r *http.Request, install 
 	}
 
 	var imageName string
-	err = db.QueryRow("SELECT image_name FROM languages WHERE id = ?", id).Scan(&imageName)
+	err = database.QueryRow("SELECT image_name FROM languages WHERE id = ?", id).Scan(&imageName)
 	if err != nil {
 		http.Error(w, "Language not found", http.StatusNotFound)
 		return
@@ -191,7 +177,7 @@ func doUpdateInstallationStatus(w http.ResponseWriter, r *http.Request, install 
 		return
 	}
 
-	_, err = db.Exec("UPDATE languages SET installed = ?, updated_at = ? WHERE id = ?", install, time.Now(), id)
+	_, err = database.Exec("UPDATE languages SET installed = ?, updated_at = ? WHERE id = ?", install, time.Now(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
