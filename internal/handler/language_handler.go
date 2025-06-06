@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strconv"
 	"time"
+
+	"github.com/prabalesh/puppet/internal/model"
 )
 
 type Handler struct{ db *sql.DB }
@@ -16,18 +18,8 @@ func New(database *sql.DB) *Handler {
 	return &Handler{db: database}
 }
 
-type Language struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Version   string    `json:"version"`
-	ImageName string    `json:"image_name"`
-	Installed bool      `json:"installed"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
 func (h *Handler) AddLanguage(w http.ResponseWriter, r *http.Request) {
-	var lang Language
+	var lang model.Language
 	if err := json.NewDecoder(r.Body).Decode(&lang); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
@@ -57,9 +49,9 @@ func (h *Handler) ListLanguages(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var languages []Language
+	var languages []model.Language
 	for rows.Next() {
-		var lang Language
+		var lang model.Language
 
 		err := rows.Scan(&lang.ID,
 			&lang.Name,
@@ -153,7 +145,7 @@ func (h *Handler) doUpdateInstallationStatus(w http.ResponseWriter, r *http.Requ
 
 	_, err = h.db.Exec("UPDATE languages SET installed = ?, updated_at = ? WHERE id = ?", install, time.Now(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "SQL error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
