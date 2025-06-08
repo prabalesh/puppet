@@ -12,9 +12,8 @@ import (
 
 	"github.com/prabalesh/puppet/internal/config"
 	"github.com/prabalesh/puppet/internal/db"
-	"github.com/prabalesh/puppet/internal/handler"
 	"github.com/prabalesh/puppet/internal/middleware"
-	"github.com/prabalesh/puppet/internal/service"
+	"github.com/prabalesh/puppet/internal/module"
 )
 
 func Start(cfg *config.Config, logger *slog.Logger) {
@@ -28,9 +27,8 @@ func Start(cfg *config.Config, logger *slog.Logger) {
 	defer database.Close()
 	logger.Info("Database connection established")
 
-	// Init services and handlers
-	languageService := service.NewLanguageService(database, logger)
-	languageHandler := handler.NewLanguageHandler(languageService, logger)
+	// Init module, handlers
+	languageHandler := module.InitLanguageModule(database, logger)
 
 	// HTTP routes
 	mux := http.NewServeMux()
