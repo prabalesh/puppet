@@ -13,6 +13,7 @@ import (
 
 	"github.com/prabalesh/puppet/internal/db"
 	"github.com/prabalesh/puppet/internal/handler"
+	"github.com/prabalesh/puppet/internal/middleware"
 	"github.com/prabalesh/puppet/internal/service"
 )
 
@@ -41,7 +42,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":8080",
-		Handler: mux,
+		Handler: middleware.WithCORS(mux),
 	}
 
 	// Channel to listen for interrupt or terminate signals
