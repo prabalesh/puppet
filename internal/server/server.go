@@ -2,8 +2,8 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,17 +17,20 @@ import (
 	"github.com/prabalesh/puppet/internal/service"
 )
 
-func Start(cfg *config.Config) {
+func Start(cfg *config.Config, logger *slog.Logger) {
 	// Connect to the database
+	logger.Info("Initializing database", "db", cfg.DBUrl)
 	database, err := db.InitDB(cfg.DBUrl)
 	if err != nil {
+		logger.Error("Failed to connect to database", "error", err)
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer database.Close()
+	logger.Info("Database connection established")
 
 	// Init services and handlers
 	languageService := service.NewLanguageService(database)
-	languageHandler := handler.NewLanguageHandler(languageService)
+	languageHandler := handler.NewLanguageHandler(languageService, logger)
 
 	// HTTP routes
 	mux := http.NewServeMux()
@@ -48,21 +51,21 @@ func Start(cfg *config.Config) {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		fmt.Printf("Server started at PORT: %s\n", cfg.Port)
+		logger.Info("Starting HTTP server", "port", cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("failed to start server: %v\n", err)
+			logger.Error("Server start failed", "error", err)
 		}
 	}()
 
 	<-stop
-	fmt.Println("\nShutting down server...")
+	logger.Info("Shutdown signal received")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("server forced to shutdown: %v", err)
+		logger.Error("Forced shutdown failed", "error", err)
 	}
 
-	fmt.Println("Server gracefully stopped")
+	logger.Info("Server gracefully stopped")
 }

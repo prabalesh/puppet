@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -11,15 +12,17 @@ import (
 
 type LanguageHandler struct {
 	Service *service.LanguageService
+	logger  *slog.Logger
 }
 
-func NewLanguageHandler(s *service.LanguageService) *LanguageHandler {
-	return &LanguageHandler{Service: s}
+func NewLanguageHandler(s *service.LanguageService, logger *slog.Logger) *LanguageHandler {
+	return &LanguageHandler{Service: s, logger: logger}
 }
 
 func (h *LanguageHandler) ListLanguages(w http.ResponseWriter, r *http.Request) {
 	langs, err := h.Service.ListLanguages()
 	if err != nil {
+		h.logger.Error("Failed to list languages", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -29,10 +32,12 @@ func (h *LanguageHandler) ListLanguages(w http.ResponseWriter, r *http.Request) 
 func (h *LanguageHandler) AddLanguage(w http.ResponseWriter, r *http.Request) {
 	var lang model.Language
 	if err := json.NewDecoder(r.Body).Decode(&lang); err != nil {
+		h.logger.Warn("Invalid request payload", "error", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 	if err := h.Service.AddLanguage(lang); err != nil {
+		h.logger.Error("Failed to add language", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -43,10 +48,12 @@ func (h *LanguageHandler) DeleteLanguage(w http.ResponseWriter, r *http.Request)
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
+		h.logger.Warn("Invalid ID format", "id", idStr)
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 	if err := h.Service.DeleteLanguage(id); err != nil {
+		h.logger.Error("Failed to delete language", "id", id, "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -65,10 +72,12 @@ func (h *LanguageHandler) doInstallation(w http.ResponseWriter, r *http.Request,
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
+		h.logger.Warn("Invalid ID format", "id", idStr)
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 	if err := h.Service.UpdateInstallation(id, install); err != nil {
+		h.logger.Error("Failed to update installation state", "id", id, "install", install, "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
