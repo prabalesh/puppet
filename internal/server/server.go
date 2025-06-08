@@ -29,7 +29,7 @@ func Start(cfg *config.Config, logger *slog.Logger) {
 	logger.Info("Database connection established")
 
 	// Init services and handlers
-	languageService := service.NewLanguageService(database)
+	languageService := service.NewLanguageService(database, logger)
 	languageHandler := handler.NewLanguageHandler(languageService, logger)
 
 	// HTTP routes
