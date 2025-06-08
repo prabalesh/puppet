@@ -20,28 +20,28 @@ func NewLanguageHandler(s *service.LanguageService, logger *slog.Logger) *Langua
 }
 
 func (h *LanguageHandler) ListLanguages(w http.ResponseWriter, r *http.Request) {
-	langs, err := h.Service.ListLanguages()
+	languages, err := h.Service.ListLanguages()
 	if err != nil {
 		h.logger.Error("Failed to list languages", "error", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
-	json.NewEncoder(w).Encode(langs)
+	RespondWithJSON(w, http.StatusOK, languages)
 }
 
 func (h *LanguageHandler) AddLanguage(w http.ResponseWriter, r *http.Request) {
 	var lang model.Language
 	if err := json.NewDecoder(r.Body).Decode(&lang); err != nil {
 		h.logger.Warn("Invalid request payload", "error", err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 	if err := h.Service.AddLanguage(lang); err != nil {
 		h.logger.Error("Failed to add language", "error", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to add language")
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	RespondWithJSON(w, http.StatusCreated, map[string]string{"message": "Language added successfully"})
 }
 
 func (h *LanguageHandler) DeleteLanguage(w http.ResponseWriter, r *http.Request) {
@@ -49,15 +49,15 @@ func (h *LanguageHandler) DeleteLanguage(w http.ResponseWriter, r *http.Request)
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		h.logger.Warn("Invalid ID format", "id", idStr)
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 	if err := h.Service.DeleteLanguage(id); err != nil {
 		h.logger.Error("Failed to delete language", "id", id, "error", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	RespondWithJSON(w, http.StatusOK, map[string]string{"message": "Language deleted successfully"})
 }
 
 func (h *LanguageHandler) InstallLanguage(w http.ResponseWriter, r *http.Request) {
@@ -73,13 +73,17 @@ func (h *LanguageHandler) doInstallation(w http.ResponseWriter, r *http.Request,
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		h.logger.Warn("Invalid ID format", "id", idStr)
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 	if err := h.Service.UpdateInstallation(id, install); err != nil {
 		h.logger.Error("Failed to update installation state", "id", id, "install", install, "error", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	msg := "Language installed successfully"
+	if !install {
+		msg = "Language uninstalled successfully"
+	}
+	RespondWithJSON(w, http.StatusOK, map[string]string{"message": msg})
 }
