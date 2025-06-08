@@ -13,6 +13,7 @@ import (
 
 	"github.com/prabalesh/puppet/internal/db"
 	"github.com/prabalesh/puppet/internal/handler"
+	"github.com/prabalesh/puppet/internal/service"
 )
 
 var database *sql.DB
@@ -28,14 +29,15 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	h := handler.New(database)
+	languageService := service.NewLanguageService(database)
+	languageHandler := handler.NewLanguageHandler(languageService)
 
 	// handlers
-	mux.HandleFunc("POST /api/languages", h.AddLanguage)
-	mux.HandleFunc("GET /api/languages", h.ListLanguages)
-	mux.HandleFunc("DELETE /api/languages/{id}", h.DeleteLanguage)
-	mux.HandleFunc("POST /api/languages/{id}/installations", h.InstallLanguage)
-	mux.HandleFunc("DELETE /api/languages/{id}/installations", h.UninstallLanguage)
+	mux.HandleFunc("POST /api/languages", languageHandler.AddLanguage)
+	mux.HandleFunc("GET /api/languages", languageHandler.ListLanguages)
+	mux.HandleFunc("DELETE /api/languages/{id}", languageHandler.DeleteLanguage)
+	mux.HandleFunc("POST /api/languages/{id}/installations", languageHandler.InstallLanguage)
+	mux.HandleFunc("DELETE /api/languages/{id}/installations", languageHandler.UninstallLanguage)
 
 	server := &http.Server{
 		Addr:    ":8080",

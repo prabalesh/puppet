@@ -1,151 +1,75 @@
 package handler
 
 import (
-	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os/exec"
 	"strconv"
-	"time"
 
 	"github.com/prabalesh/puppet/internal/model"
+	"github.com/prabalesh/puppet/internal/service"
 )
 
-type Handler struct{ db *sql.DB }
-
-func New(database *sql.DB) *Handler {
-	return &Handler{db: database}
+type LanguageHandler struct {
+	Service *service.LanguageService
 }
 
-func (h *Handler) AddLanguage(w http.ResponseWriter, r *http.Request) {
-	var lang model.Language
-	if err := json.NewDecoder(r.Body).Decode(&lang); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+func NewLanguageHandler(s *service.LanguageService) *LanguageHandler {
+	return &LanguageHandler{Service: s}
+}
+
+func (h *LanguageHandler) ListLanguages(w http.ResponseWriter, r *http.Request) {
+	langs, err := h.Service.ListLanguages()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	currentTime := time.Now()
-	_, err := h.db.Exec(
-		"INSERT INTO languages (name, version, image_name, installed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-		lang.Name,
-		lang.Version,
-		lang.ImageName,
-		false,
-		currentTime,
-		currentTime)
+	json.NewEncoder(w).Encode(langs)
+}
 
-	if err != nil {
+func (h *LanguageHandler) AddLanguage(w http.ResponseWriter, r *http.Request) {
+	var lang model.Language
+	if err := json.NewDecoder(r.Body).Decode(&lang); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if err := h.Service.AddLanguage(lang); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *Handler) ListLanguages(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.db.Query("SELECT * FROM languages")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var languages []model.Language
-	for rows.Next() {
-		var lang model.Language
-
-		err := rows.Scan(&lang.ID,
-			&lang.Name,
-			&lang.Version,
-			&lang.ImageName,
-			&lang.Installed,
-			&lang.CreatedAt,
-			&lang.UpdatedAt)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		languages = append(languages, lang)
-	}
-	json.NewEncoder(w).Encode(languages)
-}
-
-func (h *Handler) DeleteLanguage(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-
-	var imageName string
-	var installed bool
-	err = h.db.QueryRow("SELECT image_name, installed FROM languages WHERE id = ?", id).Scan(&imageName, &installed)
-	if err == sql.ErrNoRows {
-		http.Error(w, "language not found", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if installed {
-		cmd := exec.Command("docker", "rmi", imageName)
-		err := cmd.Run()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("docker uninstall failed: %v", err), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	_, err = h.db.Exec("DELETE FROM languages WHERE id = ?", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *Handler) InstallLanguage(w http.ResponseWriter, r *http.Request) {
-	h.doUpdateInstallationStatus(w, r, true)
-}
-
-func (h *Handler) UninstallLanguage(w http.ResponseWriter, r *http.Request) {
-	h.doUpdateInstallationStatus(w, r, false)
-}
-
-func (h *Handler) doUpdateInstallationStatus(w http.ResponseWriter, r *http.Request, install bool) {
+func (h *LanguageHandler) DeleteLanguage(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
-
-	var imageName string
-	err = h.db.QueryRow("SELECT image_name FROM languages WHERE id = ?", id).Scan(&imageName)
-	if err != nil {
-		http.Error(w, "Language not found", http.StatusNotFound)
+	if err := h.Service.DeleteLanguage(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusNoContent)
+}
 
-	var cmd *exec.Cmd
-	if install {
-		cmd = exec.Command("docker", "pull", imageName)
-	} else {
-		cmd = exec.Command("docker", "rmi", imageName)
-	}
+func (h *LanguageHandler) InstallLanguage(w http.ResponseWriter, r *http.Request) {
+	h.doInstallation(w, r, true)
+}
 
-	err = cmd.Run()
+func (h *LanguageHandler) UninstallLanguage(w http.ResponseWriter, r *http.Request) {
+	h.doInstallation(w, r, false)
+}
+
+func (h *LanguageHandler) doInstallation(w http.ResponseWriter, r *http.Request, install bool) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Docker error: %v", err), http.StatusInternalServerError)
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
-
-	_, err = h.db.Exec("UPDATE languages SET installed = ?, updated_at = ? WHERE id = ?", install, time.Now(), id)
-	if err != nil {
-		http.Error(w, "SQL error: "+err.Error(), http.StatusInternalServerError)
+	if err := h.Service.UpdateInstallation(id, install); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
