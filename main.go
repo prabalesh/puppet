@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prabalesh/puppet/internal/config"
 	"github.com/prabalesh/puppet/internal/db"
 	"github.com/prabalesh/puppet/internal/handler"
 	"github.com/prabalesh/puppet/internal/middleware"
@@ -20,9 +21,12 @@ import (
 var database *sql.DB
 
 func main() {
+	// configuration
+	cfg := config.Load()
+
 	// database connection
 	var err error
-	database, err = db.InitDB("file:storage/puppet.db?cache=shared&_foreign_keys=on")
+	database, err = db.InitDB(cfg.DBUrl)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err.Error())
 	}
@@ -41,8 +45,8 @@ func main() {
 	mux.HandleFunc("DELETE /api/languages/{id}/installations", languageHandler.UninstallLanguage)
 
 	server := &http.Server{
-		Addr:    ":8080",
-		Handler: middleware.WithCORS(mux),
+		Addr:    ":" + cfg.Port,
+		Handler: middleware.WithCORS(mux, cfg.AllowedOrigin),
 	}
 
 	// Channel to listen for interrupt or terminate signals
@@ -50,7 +54,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		fmt.Println("Server started at http://localhost:8080/")
+		fmt.Printf("Server started at PORT: %s\n", cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("failed to start server: %v\n", err)
 		}
