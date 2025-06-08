@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	Env           string
 	Port          string
 	DBUrl         string
 	AllowedOrigin string
@@ -20,6 +21,7 @@ func Load() *Config {
 	}
 
 	return &Config{
+		Env:           getEnv("ENV", "production"),
 		Port:          getEnv("PORT", "8080"),
 		DBUrl:         getEnv("DB_URL", "storage/puppet.db"),
 		AllowedOrigin: getEnv("ALLOWED_ORIGIN", "http://localhost:5173"),
