@@ -5,12 +5,12 @@ import (
 	"log/slog"
 
 	"github.com/prabalesh/puppet/internal/handler"
-	sqliterepo "github.com/prabalesh/puppet/internal/repository/sqlite"
+	pgRepo "github.com/prabalesh/puppet/internal/repository/postgres"
 	"github.com/prabalesh/puppet/internal/service"
 )
 
 func InitLanguageModule(db *sql.DB, logger *slog.Logger) *handler.LanguageHandler {
-	repo := sqliterepo.NewLanguageSQLite(db)
+	repo := pgRepo.NewLanguagePostgres(db)
 
 	langService := service.NewLanguageService(repo, logger)
 	langHandler := handler.NewLanguageHandler(langService, logger)
