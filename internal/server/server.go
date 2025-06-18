@@ -29,6 +29,7 @@ func Start(cfg *config.Config, logger *slog.Logger) {
 
 	// Init module, handlers
 	languageHandler := module.InitLanguageModule(database, logger)
+	executorHandler := module.InitExecutorModule(database, logger)
 
 	// HTTP routes
 	mux := http.NewServeMux()
@@ -37,6 +38,8 @@ func Start(cfg *config.Config, logger *slog.Logger) {
 	mux.HandleFunc("DELETE /api/languages/{id}", languageHandler.DeleteLanguage)
 	mux.HandleFunc("POST /api/languages/{id}/installations", languageHandler.InstallLanguage)
 	mux.HandleFunc("DELETE /api/languages/{id}/installations", languageHandler.UninstallLanguage)
+
+	mux.HandleFunc("POST /api/executions", executorHandler.RunCode)
 
 	// HTTP server
 	server := &http.Server{
