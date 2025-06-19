@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/prabalesh/puppet/internal/dto"
 	"github.com/prabalesh/puppet/internal/repository"
@@ -25,32 +27,45 @@ func (s *ExecutorService) RunCode(runCodeDto dto.ExecuteCodeRequest) (string, er
 		return "", fmt.Errorf("failed to get language: %w", err)
 	}
 
-	dockerArgs := []string{
-		"run", "--rm",
+	tmpDir, err := os.MkdirTemp("", "code-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	codePath := filepath.Join(tmpDir, language.FileName)
+	if err := os.WriteFile(codePath, []byte(runCodeDto.Code), 0644); err != nil {
+		return "", fmt.Errorf("failed to write code file: %w", err)
+	}
+
+	containerTmpPath := "/tmp"
+	compile := language.CompileCommand
+	run := language.RunCommand
+
+	var dockerCmd string
+	if compile != "" {
+		dockerCmd = fmt.Sprintf("%s && %s", compile, run)
+	} else {
+		dockerCmd = run
+	}
+
+	cmd := exec.Command("docker", "run", "--rm", "-i",
+		"-v", fmt.Sprintf("%s:%s", tmpDir, containerTmpPath),
+		"-w", containerTmpPath,
+		"--network", "none",
 		language.ImageName,
-	}
+		"sh", "-c", dockerCmd,
+	)
 
-	var codeCmd []string
-	switch language.Name {
-	case "python":
-		codeCmd = []string{"python3", "-c", runCodeDto.Code}
-	case "javascript":
-		codeCmd = []string{"node", "-e", runCodeDto.Code}
-	default:
-		return "", fmt.Errorf("unsupported language: %s", language.Name)
-	}
+	cmd.Stdin = bytes.NewReader([]byte(runCodeDto.Stdin))
 
-	dockerArgs = append(dockerArgs, codeCmd...)
-
-	cmd := exec.Command("docker", dockerArgs...)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
+	var out, stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-
+	cmd.Dir = tmpDir
 	err = cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("docker run failed: %s - %w", stderr.String(), err)
+		return "", fmt.Errorf("execution error: %s - %w", stderr.String(), err)
 	}
 
 	return out.String(), nil
