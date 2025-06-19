@@ -55,6 +55,12 @@ func (s *LanguageService) UpdateInstallation(id int, install bool) error {
 		s.logger.Error("Failed to get language for update", "error", err)
 		return err
 	}
+	if language.Installed && install {
+		return fmt.Errorf("Language with ID %d is already installed", id)
+	}
+	if !language.Installed && !install {
+		return fmt.Errorf("Language with ID %d is not installed", id)
+	}
 
 	var cmd *exec.Cmd
 	if install {
