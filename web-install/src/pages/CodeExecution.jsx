@@ -1,81 +1,93 @@
 import { useEffect, useState } from "react";
-import { getLanguages } from  "../services/api";
+import { getLanguages } from "../services/api";
 
 export default function CodeExecution() {
-  const [languages, setLanguages] = useState([]);
-  const [selectedLanguage, setSelectedLanguage] = useState("");
-  const [code, setCode] = useState("");
-  const [stdin, setStdin] = useState("");
-  const [output, setOutput] = useState("");
+    const [languages, setLanguages] = useState([]);
+    const [selectedLanguage, setSelectedLanguage] = useState("");
+    const [code, setCode] = useState("");
+    const [stdin, setStdin] = useState("");
+    const [output, setOutput] = useState("");
 
-  useEffect(() => {
-    getLanguages().then(setLanguages);
-  }, []);
+    useEffect(() => {
+        getLanguages().then(setLanguages);
+    }, []);
 
-  async function handleRun() {
-    const res = await fetch("http://localhost:8080/api/executions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        languageId: parseInt(selectedLanguage),
-        code,
-        stdin,
-      }),
-    });
+    async function handleRun() {
+        const res = await fetch("http://localhost:8080/api/executions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                languageId: parseInt(selectedLanguage),
+                code,
+                stdin,
+            }),
+        });
 
-    const result = await res.text();
-    setOutput(result);
-  }
+        const result = await res.text();
+        setOutput(result);
+    }
 
-  return (
-    <div>
-      <h2>Run Code</h2>
+    return (
+        <div>
+            <h2 className="text-2xl font-bold">Run Code</h2>
 
-      <label>
-        Language:
-        <select
-          value={selectedLanguage}
-          onChange={(e) => setSelectedLanguage(e.target.value)}
-        >
-          <option value="">-- Select --</option>
-          {languages.map((lang) => (
-            <option key={lang.id} value={lang.id}>
-              {lang.name}
-            </option>
-          ))}
-        </select>
-      </label>
+            <div className="flex flex-col gap-4">
+                <div className="my-4 flex items-center gap-2">
+                    <label>Language</label>
+                    <select
+                        value={selectedLanguage}
+                        onChange={(e) => setSelectedLanguage(e.target.value)}
+                        className="px-4 py-1 border rounded"
+                    >
+                        <option value="">Select</option>
+                        {languages.map((lang) => (
+                            <option key={lang.id} value={lang.id}>
+                                {lang.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-      <div>
-        <label>Code:</label>
-        <textarea
-          rows="10"
-          cols="80"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Write your code here..."
-        />
-      </div>
 
-      <div>
-        <label>Stdin:</label>
-        <textarea
-          rows="4"
-          cols="80"
-          value={stdin}
-          onChange={(e) => setStdin(e.target.value)}
-          placeholder="Optional input..."
-        />
-      </div>
+                <div className="flex flex-col">
+                    <label>Code:</label>
+                    <textarea
+                        rows="10"
+                        cols="80"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        placeholder="Write your code here..."
+                        className="p-2 border rounded"
+                    />
+                </div>
 
-      <button onClick={handleRun}>Run</button>
+                <div className="flex flex-col">
+                    <label>Stdin:</label>
+                    <textarea
+                        rows="4"
+                        cols="80"
+                        value={stdin}
+                        onChange={(e) => setStdin(e.target.value)}
+                        placeholder="Optional input..."
+                        className="p-2 border rounded"
+                    />
+                </div>
 
-      {output && (
-        <div style={{ marginTop: "1rem" }}>
-          <h3>Output:</h3>
-          <pre>{output}</pre>
+                <button onClick={handleRun} className="py-2 px-4 bg-slate-500 text-white hover:bg-slate-600 rounded">Run</button>
+            </div>
+
+            {output && (
+                <div style={{ marginTop: "1rem" }}>
+                    <div>
+                        <h3>Output:</h3>
+                    </div>
+                    {output != "" && (
+                        <div className="p-2 border rounded">
+                            <pre>{output}</pre>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
