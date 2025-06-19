@@ -18,6 +18,9 @@ func InitDB(dataSource string) (*sql.DB, error) {
 			name TEXT NOT NULL,
 			version TEXT NOT NULL,
 			image_name TEXT UNIQUE NOT NULL,
+			file_name TEXT NOT NULL,
+			compile_command TEXT,
+			run_command TEXT NOT NULL,
 			installed BOOLEAN NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL,
 			updated_at TIMESTAMPTZ NOT NULL
