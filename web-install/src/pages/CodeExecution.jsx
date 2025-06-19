@@ -23,9 +23,7 @@ export default function CodeExecution() {
       }),
     });
 
-    let result = await res.text();
-    result = output.replace(/\\n/g, "\n");
-    console.log(result)
+    const result = await res.text();
     setOutput(result);
   }
 
