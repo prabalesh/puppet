@@ -18,7 +18,7 @@ func NewLanguagePostgres(db *sql.DB) repository.LanguageRepository {
 }
 
 func (r *LanguagePostgres) ListLanguages() ([]model.Language, error) {
-	rows, err := r.db.Query("SELECT id, name, version, image_name, installed, created_at, updated_at FROM languages")
+	rows, err := r.db.Query("SELECT id, name, version, image_name, file_name, compile_command, run_command, installed, created_at, updated_at FROM languages")
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (r *LanguagePostgres) ListLanguages() ([]model.Language, error) {
 	var langs []model.Language
 	for rows.Next() {
 		var lang model.Language
-		err := rows.Scan(&lang.ID, &lang.Name, &lang.Version, &lang.ImageName, &lang.Installed, &lang.CreatedAt, &lang.UpdatedAt)
+		err := rows.Scan(&lang.ID, &lang.Name, &lang.Version, &lang.ImageName, &lang.FileName, &lang.CompileCommand, &lang.RunCommand, &lang.Installed, &lang.CreatedAt, &lang.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -39,9 +39,9 @@ func (r *LanguagePostgres) ListLanguages() ([]model.Language, error) {
 func (r *LanguagePostgres) AddLanguage(lang model.Language) error {
 	now := time.Now()
 	_, err := r.db.Exec(`
-		INSERT INTO languages (name, version, image_name, installed, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, lang.Name, lang.Version, lang.ImageName, false, now, now)
+		INSERT INTO languages (name, version, image_name, file_name, compile_command, run_command, installed, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`, lang.Name, lang.Version, lang.ImageName, lang.FileName, lang.CompileCommand, lang.RunCommand, false, now, now)
 	return err
 }
 
@@ -69,8 +69,8 @@ func (r *LanguagePostgres) UpdateInstallationStatus(id int, installed bool) erro
 
 func (r *LanguagePostgres) GetLanguageById(id int) (model.Language, error) {
 	var lang model.Language
-	err := r.db.QueryRow("SELECT id, name, version, image_name, installed, created_at, updated_at FROM languages WHERE id = $1", id).
-		Scan(&lang.ID, &lang.Name, &lang.Version, &lang.ImageName, &lang.Installed, &lang.CreatedAt, &lang.UpdatedAt)
+	err := r.db.QueryRow("SELECT id, name, version, image_name, file_name, compile_command, run_command, installed, created_at, updated_at FROM languages WHERE id = $1", id).
+		Scan(&lang.ID, &lang.Name, &lang.Version, &lang.ImageName, &lang.FileName, &lang.CompileCommand, &lang.RunCommand, &lang.Installed, &lang.CreatedAt, &lang.UpdatedAt)
 	if err != nil {
 		return model.Language{}, err
 	}
