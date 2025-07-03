@@ -24,7 +24,16 @@ func InitDB(dataSource string) (*sql.DB, error) {
 			installed BOOLEAN NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL,
 			updated_at TIMESTAMPTZ NOT NULL
-		)
+		);
+		CREATE TABLE IF NOT EXISTS language_installation_jobs (
+			id INTEGER PRIMARY KEY,
+			language_id INTEGER NOT NULL,
+			install BOOLEAN NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending', -- pending | running | done | failed
+			error TEXT,
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+		);
 	`)
 	if err != nil {
 		return nil, err
