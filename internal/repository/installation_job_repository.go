@@ -2,7 +2,7 @@ package repository
 
 import "github.com/prabalesh/puppet/internal/model"
 
-type JobRepository interface {
+type JobInstallationRepository interface {
 	CreateJob(job model.InstallationJob) (int, error)
 	GetNextPendingJob() (*model.InstallationJob, error)
 	UpdateJobStatus(id int, status string, errMsg *string) error
