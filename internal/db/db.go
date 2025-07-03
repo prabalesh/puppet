@@ -26,7 +26,7 @@ func InitDB(dataSource string) (*sql.DB, error) {
 			updated_at TIMESTAMPTZ NOT NULL
 		);
 		CREATE TABLE IF NOT EXISTS language_installation_jobs (
-			id INTEGER PRIMARY KEY,
+			id SERIAL PRIMARY KEY,
 			language_id INTEGER NOT NULL,
 			install BOOLEAN NOT NULL,
 			status TEXT NOT NULL DEFAULT 'pending', -- pending | running | done | failed
