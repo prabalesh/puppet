@@ -11,11 +11,12 @@ import (
 
 type LanguageService struct {
 	repo   repository.LanguageRepository
+	jobRepo repository.JobInstallationRepository
 	logger *slog.Logger
 }
 
-func NewLanguageService(repo repository.LanguageRepository, logger *slog.Logger) *LanguageService {
-	return &LanguageService{repo: repo, logger: logger}
+func NewLanguageService(repo repository.LanguageRepository, jobRepo repository.JobInstallationRepository, logger *slog.Logger) *LanguageService {
+	return &LanguageService{repo: repo, jobRepo: jobRepo, logger: logger}
 }
 
 func (s *LanguageService) ListLanguages() ([]model.Language, error) {
@@ -48,31 +49,23 @@ func (s *LanguageService) DeleteLanguage(id int) error {
 }
 
 func (s *LanguageService) UpdateInstallation(id int, install bool) error {
-	s.logger.Info("Updating installation", "id", id, "install", install)
+	s.logger.Info("Queuing install/uninstall job", "id", id, "install", install)
 
-	language, err := s.repo.GetLanguageById(id)
+	_, err := s.repo.GetLanguageById(id)
 	if err != nil {
-		s.logger.Error("Failed to get language for update", "error", err)
 		return err
 	}
-	if language.Installed && install {
-		return fmt.Errorf("Language with ID %d is already installed", id)
+
+	job := model.InstallationJob{
+		LanguageID: id,
+		Install:    install,
+		Status:     "pending",
 	}
-	if !language.Installed && !install {
-		return fmt.Errorf("Language with ID %d is not installed", id)
+	_, err = s.jobRepo.CreateJob(job)
+	if err != nil {
+		s.logger.Error("Failed to create job", "error", err)
+		return err
 	}
 
-	var cmd *exec.Cmd
-	if install {
-		cmd = exec.Command("docker", "pull", language.ImageName)
-	} else {
-		cmd = exec.Command("docker", "rmi", language.ImageName)
-	}
-
-	if err := cmd.Run(); err != nil {
-		s.logger.Error("Docker operation failed", "error", err)
-		return fmt.Errorf("docker error: %v", err)
-	}
-
-	return s.repo.UpdateInstallationStatus(id, install)
+	return nil
 }
