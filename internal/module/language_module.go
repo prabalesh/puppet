@@ -11,8 +11,9 @@ import (
 
 func InitLanguageModule(db *sql.DB, logger *slog.Logger) *handler.LanguageHandler {
 	repo := pgRepo.NewLanguagePostgres(db)
+	jobRepo := pgRepo.NewJobRepository(db)
 
-	langService := service.NewLanguageService(repo, logger)
+	langService := service.NewLanguageService(repo, jobRepo, logger)
 	langHandler := handler.NewLanguageHandler(langService, logger)
 	return langHandler
 }
