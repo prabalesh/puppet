@@ -76,14 +76,15 @@ func (h *LanguageHandler) doInstallation(w http.ResponseWriter, r *http.Request,
 		RespondWithError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
-	if err := h.Service.UpdateInstallation(id, install); err != nil {
+	jobId, err := h.Service.UpdateInstallation(id, install)
+	if err != nil {
 		h.logger.Error("Failed to update installation state", "id", id, "install", install, "error", err)
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	msg := "Language installed successfully"
-	if !install {
-		msg = "Language uninstalled successfully"
-	}
-	RespondWithJSON(w, http.StatusOK, map[string]string{"message": msg})
+	// msg := "Language installed successfully"
+	// if !install {
+	// 	msg = "Language uninstalled successfully"
+	// }
+	RespondWithJSON(w, http.StatusOK, map[string]int{"job_id": jobId})
 }
