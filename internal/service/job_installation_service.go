@@ -9,7 +9,7 @@ import (
 )
 
 type JobInstallationService struct {
-	Repo repository.JobInstallationRepository
+	Repo   repository.JobInstallationRepository
 	logger *slog.Logger
 }
 
