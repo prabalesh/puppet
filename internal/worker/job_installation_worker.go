@@ -25,7 +25,7 @@ func ProcessNextJob(
 		return nil
 	}
 
-	logger.Info("Picked job", "jobID", job.ID, "install", job.Install)
+	logger.Info("Picked job", "jobID", job.ID, "action", job.Action)
 
 	if err := jobRepo.UpdateJobStatus(job.ID, "running", nil); err != nil {
 		return fmt.Errorf("failed to mark job as running: %w", err)
@@ -47,9 +47,8 @@ func executeJob(
 		return errors.New(msg)
 	}
 
-	cmd := prepareDockerCommand(job.Install, lang.ImageName)
+	cmd := prepareDockerCommand(job.Action, lang.ImageName)
 	logger.Info("Executing Docker command", "jobID", job.ID, "command", cmd.String())
-
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -59,12 +58,19 @@ func executeJob(
 	}
 
 	// Update language install status in DB
-	if err := langRepo.UpdateInstallationStatus(lang.ID, job.Install); err != nil {
-		msg := fmt.Sprintf("language status update failed: %v", err)
-		jobRepo.UpdateJobStatus(job.ID, "failed", &msg)
-		return errors.New(msg)
+	if job.Action == "delete" {
+		langRepo.DeleteLanguage(job.LanguageID)
+	} else {
+		var install bool = false
+		if job.Action == "install" {
+			install = true
+		}
+		if err := langRepo.UpdateInstallationStatus(lang.ID, install); err != nil {
+			msg := fmt.Sprintf("language status update failed: %v", err)
+			jobRepo.UpdateJobStatus(job.ID, "failed", &msg)
+			return errors.New(msg)
+		}
 	}
-
 	if err := jobRepo.UpdateJobStatus(job.ID, "done", nil); err != nil {
 		return fmt.Errorf("job status final update failed: %w", err)
 	}
@@ -73,8 +79,8 @@ func executeJob(
 	return nil
 }
 
-func prepareDockerCommand(install bool, image string) *exec.Cmd {
-	if install {
+func prepareDockerCommand(action string, image string) *exec.Cmd {
+	if action == "install" {
 		return exec.Command("docker", "pull", image)
 	}
 	return exec.Command("docker", "rmi", image)
