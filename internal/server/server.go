@@ -42,7 +42,7 @@ func Start(cfg *config.Config, logger *slog.Logger) {
 
 	mux.HandleFunc("POST /api/executions", executorHandler.RunCode)
 
-	mux.HandleFunc("GET /api/jobs/installations/status", jobInstallationHandler.GetJobStatus)
+	mux.HandleFunc("GET /api/jobs/installations/{id}/status", jobInstallationHandler.GetJobStatus)
 
 	// HTTP server
 	server := &http.Server{
