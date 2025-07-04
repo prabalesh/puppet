@@ -17,18 +17,18 @@ func NewJobRepository(db *sql.DB) *JobRepository {
 
 func (r *JobRepository) CreateJob(job model.InstallationJob) (int, error) {
 	query := `
-		INSERT INTO language_installation_jobs (language_id, install, status)
+		INSERT INTO language_installation_jobs (language_id, action, status)
 		VALUES ($1, $2, $3)
 		RETURNING id
 	`
 	var id int
-	err := r.db.QueryRow(query, job.LanguageID, job.Install, job.Status).Scan(&id)
+	err := r.db.QueryRow(query, job.LanguageID, job.Action, job.Status).Scan(&id)
 	return id, err
 }
 
 func (r *JobRepository) GetNextPendingJob() (*model.InstallationJob, error) {
 	query := `
-		SELECT id, language_id, install, status, error, created_at, updated_at
+		SELECT id, language_id, action, status, error, created_at, updated_at
 		FROM language_installation_jobs
 		WHERE status = 'pending'
 		ORDER BY created_at
@@ -39,7 +39,7 @@ func (r *JobRepository) GetNextPendingJob() (*model.InstallationJob, error) {
 
 	var job model.InstallationJob
 	err := row.Scan(
-		&job.ID, &job.LanguageID, &job.Install, &job.Status,
+		&job.ID, &job.LanguageID, &job.Action, &job.Status,
 		&job.Error, &job.CreatedAt, &job.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -60,15 +60,15 @@ func (r *JobRepository) UpdateJobStatus(id int, status string, errorMsg *string)
 
 func (r *JobRepository) GetJobByID(id int) (*model.InstallationJob, error) {
 	query := `
-		SELECT id, language_id, install, status, error, created_at, updated_at
+		SELECT id, language_id, action, status, error, created_at, updated_at
 		FROM language_installation_jobs
 		WHERE id = $1
 	`
-	row := r.db.QueryRow(query)
+	row := r.db.QueryRow(query, id)
 
 	var job model.InstallationJob
 	err := row.Scan(
-		&job.ID, &job.LanguageID, &job.Install, &job.Status,
+		&job.ID, &job.LanguageID, &job.Action, &job.Status,
 		&job.Error, &job.CreatedAt, &job.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
