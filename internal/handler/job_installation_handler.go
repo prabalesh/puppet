@@ -10,29 +10,25 @@ import (
 
 type JobInstallationHandler struct {
 	Service *service.JobInstallationService
-	Logger  *slog.Logger
+	logger  *slog.Logger
 }
 
 func NewJobInstallationHandler(service *service.JobInstallationService, logger *slog.Logger) *JobInstallationHandler {
-	return &JobInstallationHandler{Service: service, Logger: logger}
+	return &JobInstallationHandler{Service: service, logger: logger}
 }
 
 func (h *JobInstallationHandler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		RespondWithError(w, http.StatusBadRequest, "Job ID is required")
-		return
-	}
-
+	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Invalid job ID")
+		h.logger.Warn("Invalid ID format", "id", idStr)
+		RespondWithError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
 	job, err := h.Service.GetJobStatus(id)
 	if err != nil {
-		h.Logger.Error("Failed to get job status", "id", id, "error", err)
+		h.logger.Error("Failed to get job status", "id", id, "error", err)
 		RespondWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
