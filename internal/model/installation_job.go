@@ -5,7 +5,7 @@ import "time"
 type InstallationJob struct {
 	ID         int       `json:"id"`
 	LanguageID int       `json:"language_id"`
-	Install    bool      `json:"install"`
+	Action     string    `json:"action"`
 	Status     string    `json:"status"`
 	Error      *string   `json:"error"`
 	CreatedAt  time.Time `json:"created_at"`
