@@ -3,16 +3,15 @@ package service
 import (
 	"fmt"
 	"log/slog"
-	"os/exec"
 
 	"github.com/prabalesh/puppet/internal/model"
 	"github.com/prabalesh/puppet/internal/repository"
 )
 
 type LanguageService struct {
-	repo   repository.LanguageRepository
+	repo    repository.LanguageRepository
 	jobRepo repository.JobInstallationRepository
-	logger *slog.Logger
+	logger  *slog.Logger
 }
 
 func NewLanguageService(repo repository.LanguageRepository, jobRepo repository.JobInstallationRepository, logger *slog.Logger) *LanguageService {
@@ -31,41 +30,62 @@ func (s *LanguageService) AddLanguage(lang model.Language) error {
 
 func (s *LanguageService) DeleteLanguage(id int) error {
 	s.logger.Info("Deleting language", "id", id)
-	imageName, installed, err := s.repo.DeleteLanguage(id)
+
+	lang, err := s.repo.GetLanguageById(id)
 	if err != nil {
-		return err
+		s.logger.Error("Failed to fetch language", "id", id, "error", err)
+		return fmt.Errorf("language not found: %w", err)
 	}
 
-	if installed {
-		s.logger.Info("Uninstalling Docker image", "image", imageName)
-		cmd := exec.Command("docker", "rmi", imageName)
-		if err := cmd.Run(); err != nil {
-			s.logger.Error("Docker uninstall failed", "error", err)
-			return fmt.Errorf("docker uninstall failed: %v", err)
+	if lang.Installed {
+		s.logger.Info("Language is installed. Queuing uninstall job before deletion.", "id", id)
+
+		job := model.InstallationJob{
+			LanguageID: id,
+			Action:     "delete",
+			Status:     "pending",
 		}
+
+		if _, err := s.jobRepo.CreateJob(job); err != nil {
+			s.logger.Error("Failed to queue uninstall job", "id", id, "error", err)
+			return fmt.Errorf("failed to queue uninstall job: %w", err)
+		}
+
+		return nil
 	}
 
+	if _, _, err := s.repo.DeleteLanguage(id); err != nil {
+		s.logger.Error("Failed to delete language", "id", id, "error", err)
+		return fmt.Errorf("failed to delete language: %w", err)
+	}
+
+	s.logger.Info("Language deleted immediately", "id", id)
 	return nil
 }
 
-func (s *LanguageService) UpdateInstallation(id int, install bool) error {
+func (s *LanguageService) UpdateInstallation(id int, install bool) (int, error) {
 	s.logger.Info("Queuing install/uninstall job", "id", id, "install", install)
+	var job model.InstallationJob
 
 	_, err := s.repo.GetLanguageById(id)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	job := model.InstallationJob{
+	var action string = "uninstall"
+	if install {
+		action = "install"
+	}
+	job = model.InstallationJob{
 		LanguageID: id,
-		Install:    install,
+		Action:     action,
 		Status:     "pending",
 	}
-	_, err = s.jobRepo.CreateJob(job)
+	jobId, err := s.jobRepo.CreateJob(job)
 	if err != nil {
 		s.logger.Error("Failed to create job", "error", err)
-		return err
+		return -1, err
 	}
 
-	return nil
+	return jobId, nil
 }
