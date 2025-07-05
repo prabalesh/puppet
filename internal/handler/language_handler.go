@@ -51,12 +51,13 @@ func (h *LanguageHandler) DeleteLanguage(w http.ResponseWriter, r *http.Request)
 		RespondWithError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
-	if err := h.Service.DeleteLanguage(id); err != nil {
+	jobId, err := h.Service.DeleteLanguage(id)
+	if err != nil {
 		h.logger.Error("Failed to delete language", "id", id, "error", err)
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJSON(w, http.StatusOK, map[string]string{"message": "Language deleted successfully"})
+	RespondWithJSON(w, http.StatusOK, map[string]int{"job_id": jobId})
 }
 
 func (h *LanguageHandler) InstallLanguage(w http.ResponseWriter, r *http.Request) {
