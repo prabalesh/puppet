@@ -69,19 +69,7 @@ func (s *LanguageService) UpdateInstallation(id int, install bool) (int, error) 
 
 	_, err := s.repo.GetLanguageById(id)
 	if err != nil {
-<<<<<<< HEAD
 		return -1, err
-=======
-		s.logger.Error("Failed to get language for update", "error", err)
-		return err
-	}
-	
-	if language.Installed && install {
-		return fmt.Errorf("Language with ID %d is already installed", id)
-	}
-	if !language.Installed && !install {
-		return fmt.Errorf("Language with ID %d is not installed", id)
->>>>>>> 39ce21ac838dcbae3fd9fd3d715db6a87c3985cd
 	}
 
 	var action string = "uninstall"
