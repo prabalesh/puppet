@@ -28,13 +28,13 @@ func (s *LanguageService) AddLanguage(lang model.Language) error {
 	return s.repo.AddLanguage(lang)
 }
 
-func (s *LanguageService) DeleteLanguage(id int) error {
+func (s *LanguageService) DeleteLanguage(id int) (int, error) {
 	s.logger.Info("Deleting language", "id", id)
 
 	lang, err := s.repo.GetLanguageById(id)
 	if err != nil {
 		s.logger.Error("Failed to fetch language", "id", id, "error", err)
-		return fmt.Errorf("language not found: %w", err)
+		return -1, fmt.Errorf("language not found: %w", err)
 	}
 
 	if lang.Installed {
@@ -46,21 +46,22 @@ func (s *LanguageService) DeleteLanguage(id int) error {
 			Status:     "pending",
 		}
 
-		if _, err := s.jobRepo.CreateJob(job); err != nil {
+		jobId, err := s.jobRepo.CreateJob(job)
+		if err != nil {
 			s.logger.Error("Failed to queue uninstall job", "id", id, "error", err)
-			return fmt.Errorf("failed to queue uninstall job: %w", err)
+			return -1, fmt.Errorf("failed to queue uninstall job: %w", err)
 		}
 
-		return nil
+		return jobId, nil
 	}
 
 	if _, _, err := s.repo.DeleteLanguage(id); err != nil {
 		s.logger.Error("Failed to delete language", "id", id, "error", err)
-		return fmt.Errorf("failed to delete language: %w", err)
+		return -1, fmt.Errorf("failed to delete language: %w", err)
 	}
 
 	s.logger.Info("Language deleted immediately", "id", id)
-	return nil
+	return -1, nil
 }
 
 func (s *LanguageService) UpdateInstallation(id int, install bool) (int, error) {
