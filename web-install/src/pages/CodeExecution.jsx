@@ -19,8 +19,8 @@ export default function CodeExecution() {
             stdin,
         });
 
-        const result = await res.text();
-        setOutput(result);
+        const result = await res.json();
+        setOutput(result.stdout);
     }
 
     return (
