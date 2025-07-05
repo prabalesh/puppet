@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getLanguages } from "../services/api";
+import { getLanguages, runCode } from "../services/api";
 
 export default function CodeExecution() {
     const [languages, setLanguages] = useState([]);
@@ -13,14 +13,10 @@ export default function CodeExecution() {
     }, []);
 
     async function handleRun() {
-        const res = await fetch("http://localhost:8080/api/executions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                languageId: parseInt(selectedLanguage),
-                code,
-                stdin,
-            }),
+        const res = await runCode({
+            languageId: parseInt(selectedLanguage),
+            code,
+            stdin,
         });
 
         const result = await res.text();
