@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -31,7 +30,7 @@ func (h *LanguageHandler) ListLanguages(w http.ResponseWriter, r *http.Request) 
 
 func (h *LanguageHandler) AddLanguage(w http.ResponseWriter, r *http.Request) {
 	var lang model.Language
-	if err := json.NewDecoder(r.Body).Decode(&lang); err != nil {
+	if err := JsonDecode(w, r, &lang); err != nil {
 		h.logger.Warn("Invalid request payload", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return

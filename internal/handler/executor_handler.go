@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -20,7 +19,7 @@ func NewExecutorHandler(s *service.ExecutorService, logger *slog.Logger) *Execut
 
 func (h *ExecutorHandler) RunCode(w http.ResponseWriter, r *http.Request) {
 	var runCodeReqBody dto.ExecuteCodeRequest
-	if err := json.NewDecoder(r.Body).Decode(&runCodeReqBody); err != nil {
+	if err := JsonDecode(w, r, &runCodeReqBody); err != nil {
 		h.logger.Warn("Invalid request payload", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
