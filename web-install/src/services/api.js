@@ -1,12 +1,12 @@
-const BASE_URL = "http://localhost:8080/api/languages";
+const BASE_URL = "http://localhost:8080/api";
 
 export async function getLanguages() {
-    const res = await fetch(BASE_URL);
+    const res = await fetch(`${BASE_URL}/languages`);
     return res.json();
 }
 
 export async function addLanguage(data) {
-    await fetch(BASE_URL, {
+    await fetch(`${BASE_URL}/languages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -14,13 +14,31 @@ export async function addLanguage(data) {
 }
 
 export async function deleteLanguage(id) {
-    await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
+    const res = await fetch(`${BASE_URL}/languages/${id}`, { method: "DELETE" });
+    return res.json();
 }
 
 export async function installLanguage(id) {
-    await fetch(`${BASE_URL}/${id}/installations`, { method: "POST" });
+    const res = await fetch(`${BASE_URL}/languages/${id}/installations`, { method: "POST" });
+    return res.json();
 }
 
 export async function uninstallLanguage(id) {
-    await fetch(`${BASE_URL}/${id}/installations`, { method: "DELETE" });
+    const res = await fetch(`${BASE_URL}/languages/${id}/installations`, { method: "DELETE" });
+    return res.json();
+}
+
+export async function getJobStatus(jobId) {
+    const res = await fetch(`${BASE_URL}/jobs/installations/${jobId}/status`);
+    return res.json();
+}
+
+export async function runCode(data) {
+    const res = await fetch(`${BASE_URL}/executions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+
+    return res;
 }
