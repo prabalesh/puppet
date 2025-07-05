@@ -30,7 +30,7 @@ export default function LanguageForm({ onSuccess }) {
     }
 
     return (
-        <div className="m-4 w-100">
+        <div className="w-100">
             <div className="mb-4 text-2xl font-bold">
                 <h1>Add Language</h1>
             </div>
@@ -100,7 +100,7 @@ export default function LanguageForm({ onSuccess }) {
                         required
                     />
                 </div>
-                <button type="submit" className="w-100 py-2 rounded bg-slate-500 text-white hover:bg-slate-600">Add Language</button>
+                <button type="submit" className="w-100 py-2 rounded bg-purple-700 text-white hover:bg-purple-900">Add Language</button>
             </form>
         </div>
     );

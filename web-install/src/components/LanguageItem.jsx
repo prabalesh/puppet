@@ -61,17 +61,17 @@ function LanguageItem({ lang, refresh }) {
         <div className='border p-2 rounded mb-4'>
             <div className='mb-4 text-xl font-bold text-center'>
                 <h4>{lang.name} ({lang.version})</h4>
+                <p className='text-xs font-light'>{formatDate(lang.created_at)}</p>
             </div>
-            <div className='gap-2 mb-4'>
+            <div className='gap-2 mb-4 text-center'>
                 <p><strong>Status:</strong> {lang.installed ? '✅ Installed' : '❌ Not installed'}</p>
                 <p><strong>Docker Image:</strong> {lang.image_name}</p>
                 <p><strong>Source File Name:</strong> {lang.file_name}</p>
                 <p><strong>Compile Command:</strong> {lang.compile_command || '—'}</p>
                 <p><strong>Run Command:</strong> {lang.run_command}</p>
-                <p><strong>Created At:</strong> {formatDate(lang.created_at)}</p>
             </div>
 
-            <div style={{ marginTop: '0.5rem' }}>
+            <div className='text-center' style={{ marginTop: '0.5rem' }}>
                 <button
                     disabled={isProcessing}
                     onClick={() => handleJob(() => deleteLanguage(lang.id), "delete")}
