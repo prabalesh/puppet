@@ -6,10 +6,15 @@ import { Moon, Play, Sun } from "lucide-react";
 
 export default function CodeExecution() {
     const [languages, setLanguages] = useState([]);
-    const [selectedLanguage, setSelectedLanguage] = useState(null); // Store full language object
+    const [selectedLanguage, setSelectedLanguage] = useState(null);
     const [code, setCode] = useState("// Write your code here");
     const [stdin, setStdin] = useState("");
-    const [output, setOutput] = useState("");
+    const [output, setOutput] = useState({
+        stdout: "",
+        stderr: "",
+        duration: "",
+    });
+
     const [loading, setLoading] = useState(false);
     const [theme, setTheme] = useState("vs-light");
 
@@ -36,7 +41,9 @@ export default function CodeExecution() {
             });
 
             const result = await res.json();
-            setOutput(result.stdout || result.stderr || "No output.");
+            const { stdout, stderr, duration } = result;
+
+            setOutput({ stdout, stderr, duration });
         } catch (err) {
             console.log(err);
             setOutput("An error occurred while executing the code.");
@@ -74,6 +81,7 @@ export default function CodeExecution() {
                         <button
                             onClick={() => setTheme(theme === "vs-dark" ? "vs-light" : "vs-dark")}
                             className="text-sm px-4 py-2 border rounded-md hover:bg-gray-200"
+                            title="Toggle theme"
                         >
                             {theme === "vs-dark" ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
@@ -112,12 +120,35 @@ export default function CodeExecution() {
                             />
                         </div>
 
-                        <div>
-                            <label className="font-medium mb-2 block">Output:</label>
-                            <div className="p-4 border rounded-md bg-gray-100 h-[180px] overflow-y-auto text-sm font-mono whitespace-pre-wrap">
-                                {output || <span className="text-gray-500"><Spinner /></span>}
-                            </div>
+                        <div className="p-4 border rounded-md bg-gray-100 h-[180px] overflow-y-auto text-sm font-mono whitespace-pre-wrap">
+                            {loading ? (
+                                <span className="text-gray-500"><Spinner /></span>
+                            ) : (
+                                <>
+                                    {output.duration && (
+                                        <div className="text-blue-600 font-semibold mb-2">
+                                            Execution time: {output.duration} seconds
+                                        </div>
+                                    )}
+                                    {output.stdout && (
+                                        <div className="text-black">
+                                            <strong className="block text-green-700 mb-1">STDOUT:</strong>
+                                            {output.stdout}
+                                        </div>
+                                    )}
+                                    {output.stderr && (
+                                        <div className="text-red-600 mt-2">
+                                            <strong className="block mb-1">STDERR:</strong>
+                                            {output.stderr}
+                                        </div>
+                                    )}
+                                    {!output.stdout && !output.stderr && !output.duration && (
+                                        <span className="text-gray-500">No output.</span>
+                                    )}
+                                </>
+                            )}
                         </div>
+
                     </div>
                 </div>
 
@@ -131,8 +162,14 @@ export default function CodeExecution() {
                                 ? "bg-purple-400 cursor-not-allowed"
                                 : "bg-purple-700 hover:bg-purple-800"
                         }`}
+                        title="Run Code"
                     >
-                        {loading ? <Spinner size="h-6 w-6" /> : <Play size={24} />}
+                        {loading ? <Spinner size="h-6 w-6" /> : (
+                            <span className="flex items-center gap-2">
+                                <Play size={20} />
+                                Run
+                            </span>
+                        )}
                     </button>
                 </div>
             </div>
