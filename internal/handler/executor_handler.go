@@ -32,5 +32,7 @@ func (h *ExecutorHandler) RunCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, codeOutput)
+	res := map[string]string{"stdout": codeOutput}
+
+	RespondWithJSON(w, http.StatusOK, res)
 }
