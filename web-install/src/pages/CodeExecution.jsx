@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getLanguages, runCode } from "../services/api";
 import Editor from "@monaco-editor/react";
+import Spinner from "../components/Spinner";
+import { Moon, Play, Sun } from "lucide-react";
 
 export default function CodeExecution() {
     const [languages, setLanguages] = useState([]);
@@ -52,7 +54,6 @@ export default function CodeExecution() {
             <div className="flex flex-col gap-6">
                 <div className="flex gap-4 flex-wrap">
                     <div className="flex items-center gap-4">
-                        <label className="text-lg font-medium">Language:</label>
                         <select
                             value={selectedLanguage?.id || ""}
                             onChange={(e) => {
@@ -72,9 +73,9 @@ export default function CodeExecution() {
                     <div>
                         <button
                             onClick={() => setTheme(theme === "vs-dark" ? "vs-light" : "vs-dark")}
-                            className="text-sm px-4 py-2 border rounded-md bg-gray-100 hover:bg-gray-200"
+                            className="text-sm px-4 py-2 border rounded-md hover:bg-gray-200"
                         >
-                            Switch to {theme === "vs-dark" ? "Light" : "Dark"} Theme
+                            {theme === "vs-dark" ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
                     </div>
                 </div>
@@ -114,7 +115,7 @@ export default function CodeExecution() {
                         <div>
                             <label className="font-medium mb-2 block">Output:</label>
                             <div className="p-4 border rounded-md bg-gray-100 h-[180px] overflow-y-auto text-sm font-mono whitespace-pre-wrap">
-                                {output || <span className="text-gray-500">No output yet.</span>}
+                                {output || <span className="text-gray-500"><Spinner /></span>}
                             </div>
                         </div>
                     </div>
@@ -131,7 +132,7 @@ export default function CodeExecution() {
                                 : "bg-purple-700 hover:bg-purple-800"
                         }`}
                     >
-                        {loading ? "Running..." : "Run"}
+                        {loading ? <Spinner size="h-6 w-6" /> : <Play size={24} />}
                     </button>
                 </div>
             </div>

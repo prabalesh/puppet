@@ -5,6 +5,8 @@ import {
     uninstallLanguage,
     getJobStatus
 } from '../services/api';
+import { Download, Trash2, XCircle } from 'lucide-react';
+import Spinner from './Spinner';
 
 function LanguageItem({ lang, refresh }) {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -43,9 +45,9 @@ function LanguageItem({ lang, refresh }) {
             setIsProcessing(true);
             setProcessingAction(actionType);
             const { job_id } = await actionFunc();
-            if(actionType == "delete" && job_id == -1) {
-                refresh()
-                return
+            if (actionType === "delete" && job_id === -1) {
+                refresh();
+                return;
             }
             await pollJobUntilDone(job_id);
             refresh();
@@ -71,30 +73,33 @@ function LanguageItem({ lang, refresh }) {
                 <p><strong>Run Command:</strong> {lang.run_command}</p>
             </div>
 
-            <div className='text-center' style={{ marginTop: '0.5rem' }}>
+            <div className='text-center flex justify-center gap-4 mt-2'>
                 <button
                     disabled={isProcessing}
                     onClick={() => handleJob(() => deleteLanguage(lang.id), "delete")}
-                    className='px-4 py-2 rounded bg-red-400 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='flex items-center gap-2 px-4 py-2 rounded border border-red-400 text-red-400 hover:bg-red-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                    title='Delete Language'
                 >
-                    {isProcessing && processingAction === "delete" ? "Deleting..." : "Delete"}
-                </button>{' '}
+                    {isProcessing && processingAction === "delete" ? <Spinner /> : <XCircle size={18} />}
+                </button>
 
                 {lang.installed ? (
                     <button
                         disabled={isProcessing}
                         onClick={() => handleJob(() => uninstallLanguage(lang.id), "uninstall")}
-                        className='px-4 py-2 rounded bg-red-400 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                        className='flex items-center gap-2 px-4 py-2 rounded border border-red-400 text-red-400 hover:bg-red-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                        title='Uninstall Language'
                     >
-                        {isProcessing && processingAction === "uninstall" ? "Uninstalling..." : "Uninstall"}
+                        {isProcessing && processingAction === "uninstall" ? <Spinner /> : <Trash2 size={18} />}
                     </button>
                 ) : (
                     <button
                         disabled={isProcessing}
                         onClick={() => handleJob(() => installLanguage(lang.id), "install")}
-                        className='px-4 py-2 rounded bg-green-400 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                        className='flex items-center gap-2 px-4 py-2 rounded border border-green-400 text-green-400 hover:bg-green-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                        title='Install Language'
                     >
-                        {isProcessing && processingAction === "install" ? "Installing..." : "Install"}
+                        {isProcessing && processingAction === "install" ? <Spinner /> : <Download size={18} />}
                     </button>
                 )}
             </div>
