@@ -25,14 +25,14 @@ func (h *ExecutorHandler) RunCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	codeOutput, err := h.Server.RunCode(runCodeReqBody)
+	codeOutput, errOutput, duration, err := h.Server.RunCode(runCodeReqBody)
 	if err != nil {
 		h.logger.Error("Failed to run code", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "Failed to add language")
 		return
 	}
 
-	res := map[string]string{"stdout": codeOutput}
+	res := map[string]string{"stdout": codeOutput, "stderr": errOutput, "duration": duration}
 
 	RespondWithJSON(w, http.StatusOK, res)
 }
