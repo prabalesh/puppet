@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/prabalesh/puppet/internal/dto"
 	"github.com/prabalesh/puppet/internal/repository"
@@ -21,21 +22,21 @@ func NewExecutorService(langRepo repository.LanguageRepository, logger *slog.Log
 	return &ExecutorService{languageRepo: langRepo, logger: logger}
 }
 
-func (s *ExecutorService) RunCode(runCodeDto dto.ExecuteCodeRequest) (string, error) {
+func (s *ExecutorService) RunCode(runCodeDto dto.ExecuteCodeRequest) (string, string, string, error) {
 	language, err := s.languageRepo.GetLanguageById(runCodeDto.LanguageID)
 	if err != nil {
-		return "", fmt.Errorf("failed to get language: %w", err)
+		return "", "", "", fmt.Errorf("failed to get language: %w", err)
 	}
 
 	tmpDir, err := os.MkdirTemp("", "code-*")
 	if err != nil {
-		return "", fmt.Errorf("failed to create temp dir: %w", err)
+		return "", "", "", fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	codePath := filepath.Join(tmpDir, language.FileName)
 	if err := os.WriteFile(codePath, []byte(runCodeDto.Code), 0644); err != nil {
-		return "", fmt.Errorf("failed to write code file: %w", err)
+		return "", "", "", fmt.Errorf("failed to write code file: %w", err)
 	}
 
 	containerTmpPath := "/tmp"
@@ -63,10 +64,15 @@ func (s *ExecutorService) RunCode(runCodeDto dto.ExecuteCodeRequest) (string, er
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	cmd.Dir = tmpDir
-	err = cmd.Run()
-	if err != nil {
-		return "", fmt.Errorf("execution error: %s - %w", stderr.String(), err)
-	}
 
-	return out.String(), nil
+	start := time.Now()
+	err = cmd.Run()
+	duration := time.Since(start).Seconds()
+	durationStr := fmt.Sprintf("%.3f", duration)
+
+	// if err != nil {
+	// 	return out.String(), stderr.String(), durationStr, fmt.Errorf("execution error: %s - %w", stderr.String(), err)
+	// }
+
+	return out.String(), stderr.String(), durationStr, nil
 }
